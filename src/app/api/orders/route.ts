@@ -5,6 +5,18 @@ import { createEvent } from '@/lib/audit';
 import { v4 as uuidv4 } from 'uuid';
 import { Order } from '@/types';
 
+export async function GET(req: Request) {
+  try {
+    const url = new URL(req.url);
+    const userId = url.searchParams.get('userId') || 'user-123';
+    const orders = db.getOrders(userId);
+    return NextResponse.json(orders);
+  } catch (error) {
+    console.error('Failed to fetch orders', error);
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+  }
+}
+
 export async function POST(req: Request) {
   try {
     const idempotencyKey = req.headers.get('Idempotency-Key');

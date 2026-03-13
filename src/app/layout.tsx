@@ -17,6 +17,8 @@ export const metadata: Metadata = {
   description: "Sushi Dojo",
 };
 
+import NotificationManager from '@/components/NotificationManager';
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -28,6 +30,7 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         {children}
+        <NotificationManager />
       </body>
     </html>
   );

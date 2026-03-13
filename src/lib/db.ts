@@ -115,6 +115,10 @@ export const db = {
     return order;
   },
   
+  getOrders: (userId: string = 'user-123') => {
+    return orders.filter(o => o.userId === userId).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  },
+  
   getOrder: (id: string) => orders.find(o => o.id === id),
   
   appendEvent: (event: OrderEvent) => {
