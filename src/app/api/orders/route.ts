@@ -9,7 +9,7 @@ export async function GET(req: Request) {
   try {
     const url = new URL(req.url);
     const userId = url.searchParams.get('userId') || 'user-123';
-    const orders = db.getOrders(userId);
+    const orders = await db.getOrders(userId);
     return NextResponse.json(orders);
   } catch (error) {
     console.error('Failed to fetch orders', error);
@@ -25,7 +25,7 @@ export async function POST(req: Request) {
     }
 
     // Check Idempotency
-    if (db.checkIdempotency(idempotencyKey)) {
+    if (await db.checkIdempotency(idempotencyKey)) {
       // In a real app, you'd return the existing order's response
       return NextResponse.json({ error: 'Conflict: Duplicate request' }, { status: 409 });
     }
@@ -33,8 +33,8 @@ export async function POST(req: Request) {
     const body = await req.json();
     const { items, couponCode, userId } = body;
 
-    const products = db.getProducts();
-    const coupon = couponCode ? db.getCoupon(couponCode) : undefined;
+    const products = await db.getProducts();
+    const coupon = couponCode ? await db.getCoupon(couponCode) : undefined;
     const pricing = calculatePricing(items, products, coupon);
 
     const orderId = uuidv4();
@@ -53,7 +53,7 @@ export async function POST(req: Request) {
     };
 
     // Save Order
-    db.saveOrder(order);
+    await db.saveOrder(order);
 
     // Initial Event
     const orderPlacedEvent = createEvent(
@@ -62,7 +62,7 @@ export async function POST(req: Request) {
       { orderId, totalCents: order.totalCents, idempotencyKey },
       order.userId
     );
-    db.appendEvent(orderPlacedEvent);
+    await db.appendEvent(orderPlacedEvent);
 
     // Return 202 Accepted as required
     return NextResponse.json({ orderId, status: 'ACCEPTED' }, { status: 202 });

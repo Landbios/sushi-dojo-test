@@ -12,8 +12,8 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Missing items' }, { status: 400 });
     }
 
-    const products = db.getProducts();
-    const coupon = couponCode ? db.getCoupon(couponCode) : undefined;
+    const products = await db.getProducts();
+    const coupon = couponCode ? await db.getCoupon(couponCode) : undefined;
     
     const pricing = calculatePricing(items, products, coupon);
 
@@ -24,7 +24,7 @@ export async function POST(req: Request) {
       { itemsCount: items.length, couponCode, pricing },
       userId || 'user-123'
     );
-    db.appendEvent(event);
+    await db.appendEvent(event);
 
     return NextResponse.json({
       ...pricing,

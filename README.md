@@ -1,59 +1,64 @@
-# Momo Sushia - Restaurant Ordering & Timeline System
+# Sushi Dojo "Dark Dragon" 🐉
 
-A modern restaurant ordering flow with a reliable Order Timeline audit trail.
-
-## Key Features
-- **Menu System**: API-driven menu with complex customization.
-- **Cart Engine**: Server-side pricing validation and coupon support.
-- **Idempotency**: Secure checkout with `Idempotency-Key` validation.
-- **Audit Trail**: Immutable event-sourced timeline for every order.
-- **Security**: 16KB payload limits and automatic PII masking.
+A premium, high-performance restaurant ordering application built with Next.js, MongoDB, and Serverless.
 
 ## Prerequisites
-- **Node.js**: v18+
-- **Docker**: For MongoDB (Optional, falls back to in-memory)
+
+- **Node.js**: v20.x or higher
 - **Package Manager**: npm
+- **Docker**: For running MongoDB locally
+- **Serverless Framework**: `npm install -g serverless`
 
-## Quick Start (10 Minutes)
+## Environment Setup
 
-### 1. Setup Environment
+1. Copy `.env.example` to `.env.local` (or create it):
+   ```bash
+   MONGODB_URI=mongodb://localhost:27017
+   MONGODB_DB=sushi-dojo
+   ```
+
+## How to Run Locally
+
+### 1. Start Database
 ```bash
-npm install
+docker run -d --name sushi-mongo -p 27017:27017 mongo:latest
 ```
 
-### 2. Start Services
-To start the database (Optional):
-```bash
-docker-compose up -d
-```
+### 2. Start Application
+You can run the app in two ways:
 
-### 3. Run Application
+**Development Mode (Next.js):**
 ```bash
-# Start the Next.js development server
 npm run dev
 ```
-The application will be available at `http://localhost:3000`.
+- Frontend & API: `http://localhost:3000`
 
-### 4. Running Backend with Serverless (Optional)
+**Offline Serverless Mode:**
 ```bash
-# Using serverless-offline
-npx serverless offline
+serverless offline
+```
+- API Gateway Emulator: `http://localhost:4000`
+
+## Technical Fulfillment
+
+- **Checkout Idempotency**: Handled via `Idempotency-Key` header in `POST /api/orders`.
+- **Server-Side Pricing**: Calculated in `lib/pricing.ts`, never trusting client-side totals.
+- **Audit Timeline**: Immutable event log stored in MongoDB.
+- **PII Masking**: Automatic masking of emails and phones in logs.
+- **Payload Limits**: 16KB limit enforced for all event and order payloads.
+
+## How to Test
+
+### Run Linting
+```bash
+npm run lint
 ```
 
-## Testing & Seed Data
-- **Seed Data**: Products and coupons are automatically seeded in `src/lib/db.ts`.
-- **API Endpoints**:
-  - `GET /api/menu`: Retrieve menu products.
-  - `POST /api/cart/price`: Validate and calculate pricing (Server-side).
-  - `POST /api/orders`: Secure idempotent checkout.
-  - `GET /api/orders/[orderId]/timeline`: Fetch the audit trail.
-
-## Development Details
-- **Tech Stack**: Next.js 15, Tailwind CSS, Zustand, MongoDB.
-- **Rules**:
-  - All currency represented as **integer cents**.
-  - Payload size strictly limited to **16KB**.
-  - **PII Masking** enabled for emails and phone numbers in logs.
+### Manual Verification
+1. Add items to cart (triggers `CART_ITEM_ADDED`).
+2. Open Cart to view pricing (triggers `PRICING_CALCULATED`).
+3. Complete Checkout (triggers `ORDER_PLACED`).
+4. View your order history and click an order to see its **Timeline Explorer**.
 
 ---
 Created for SunDevs Technical Test.

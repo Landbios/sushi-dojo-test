@@ -3,7 +3,7 @@ import { db } from '@/lib/db';
 
 export async function GET() {
   try {
-    const products = db.getProducts();
+    const products = await db.getProducts();
     return NextResponse.json(products);
   } catch (error) {
     console.error('Failed to fetch menu', error);

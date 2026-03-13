@@ -18,7 +18,8 @@ export const createEvent = (
   type: EventType,
   payload: Record<string, unknown>,
   userId: string = 'user-123',
-  correlationId: string = uuidv4()
+  correlationId: string = uuidv4(),
+  source: 'web' | 'api' | 'worker' = 'api'
 ): OrderEvent => {
   const event: OrderEvent = {
     eventId: uuidv4(),
@@ -26,7 +27,7 @@ export const createEvent = (
     orderId,
     userId,
     type,
-    source: 'api',
+    source,
     correlationId,
     payload,
   };

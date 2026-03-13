@@ -1,21 +1,5 @@
 import { Product, Order, OrderEvent, Coupon } from '@/types';
-
-// In-memory persistence across reloads in dev mode
-const globalForDb = globalThis as unknown as {
-  orders: Order[];
-  events: OrderEvent[];
-  idempotencyKeys: Set<string>;
-};
-
-const orders = globalForDb.orders || [];
-const events = globalForDb.events || [];
-const idempotencyKeys = globalForDb.idempotencyKeys || new Set<string>();
-
-if (process.env.NODE_ENV !== 'production') {
-  globalForDb.orders = orders;
-  globalForDb.events = events;
-  globalForDb.idempotencyKeys = idempotencyKeys;
-}
+import { connectToDatabase } from './mongodb';
 
 const products: Product[] = [
   {
@@ -149,39 +133,59 @@ const coupons: Coupon[] = [
 ];
 
 export const db = {
-  getProducts: () => products,
-  getProduct: (id: string) => products.find(p => p.id === id),
-  getCoupons: () => coupons,
-  getCoupon: (code: string) => coupons.find(c => c.code === code.toUpperCase()),
+  getProducts: async () => products,
+  getProduct: async (id: string) => products.find(p => p.id === id),
+  getCoupons: async () => coupons,
+  getCoupon: async (code: string) => coupons.find(c => c.code === code.toUpperCase()),
   
-  saveOrder: (order: Order) => {
-    orders.push(order);
+  saveOrder: async (order: Order) => {
+    const { db: mongodb } = await connectToDatabase();
+    await mongodb.collection('orders').insertOne(order);
     return order;
   },
   
-  getOrders: (userId: string = 'user-123') => {
-    return orders.filter(o => o.userId === userId).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  getOrders: async (userId: string = 'user-123') => {
+    const { db: mongodb } = await connectToDatabase();
+    return mongodb.collection('orders')
+      .find({ userId })
+      .sort({ createdAt: -1 })
+      .toArray();
   },
   
-  getOrder: (id: string) => orders.find(o => o.id === id),
+  getOrder: async (id: string) => {
+    const { db: mongodb } = await connectToDatabase();
+    return mongodb.collection('orders').findOne({ id });
+  },
   
-  appendEvent: (event: OrderEvent) => {
-    events.push(event);
+  appendEvent: async (event: OrderEvent) => {
+    const { db: mongodb } = await connectToDatabase();
+    // Persisted events must be deduplicated by eventId
+    const existing = await mongodb.collection('events').findOne({ eventId: event.eventId });
+    if (!existing) {
+      await mongodb.collection('events').insertOne(event);
+    }
     return event;
   },
   
-  getTimeline: (orderId: string, page: number = 1, pageSize: number = 50) => {
-    const filtered = events
-      .filter(e => e.orderId === orderId)
-      .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-    
+  getTimeline: async (orderId: string, page: number = 1, pageSize: number = 50) => {
+    const { db: mongodb } = await connectToDatabase();
     const start = (page - 1) * pageSize;
-    return filtered.slice(start, start + pageSize);
+    
+    // Timeline UI must sort by timestamp (not by arrival order).
+    return mongodb.collection('events')
+      .find({ orderId })
+      .sort({ timestamp: -1 })
+      .skip(start)
+      .limit(pageSize)
+      .toArray();
   },
   
-  checkIdempotency: (key: string) => {
-    if (idempotencyKeys.has(key)) return true;
-    idempotencyKeys.add(key);
+  checkIdempotency: async (key: string) => {
+    const { db: mongodb } = await connectToDatabase();
+    const existing = await mongodb.collection('idempotency_keys').findOne({ key });
+    if (existing) return true;
+    
+    await mongodb.collection('idempotency_keys').insertOne({ key, createdAt: new Date() });
     return false;
   }
 };

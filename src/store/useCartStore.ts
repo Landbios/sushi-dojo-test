@@ -4,6 +4,7 @@ import { v4 as uuidv4 } from 'uuid';
 
 interface CartState {
   items: CartItem[];
+  correlationId: string;
   addItem: (product: Product, selectedModifiers: Record<string, string[]>, comment?: string) => void;
   removeItem: (id: string) => void;
   updateQuantity: (id: string, quantity: number) => void;
@@ -13,9 +14,29 @@ interface CartState {
   getSubtotal: (products: Product[]) => number;
 }
 
+const logEvent = async (type: string, payload: Record<string, unknown>, correlationId: string) => {
+  try {
+    await fetch('/api/events', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        type,
+        payload,
+        correlationId,
+        source: 'web'
+      }),
+    });
+  } catch (error) {
+    console.error('Failed to log event', error);
+  }
+};
+
 export const useCartStore = create<CartState>((set, get) => ({
   items: [],
+  correlationId: uuidv4(),
   addItem: (product, selectedModifiers, comment) => {
+    const { correlationId } = get();
+    logEvent('CART_ITEM_ADDED', { productId: product.id, selectedModifiers, comment }, correlationId);
     set((state) => {
       // Check if item with same product, modifiers AND comment exists
       const existingItemIndex = state.items.findIndex(
@@ -46,11 +67,16 @@ export const useCartStore = create<CartState>((set, get) => ({
     });
   },
   removeItem: (id) => {
+    const { correlationId, items } = get();
+    const item = items.find(i => i.id === id);
+    logEvent('CART_ITEM_REMOVED', { cartItemId: id, productId: item?.productId }, correlationId);
     set((state) => ({
       items: state.items.filter((item) => item.id !== id),
     }));
   },
   updateQuantity: (id, quantity) => {
+    const { correlationId } = get();
+    logEvent('CART_ITEM_UPDATED', { cartItemId: id, newQuantity: quantity }, correlationId);
     set((state) => ({
       items: state.items.map((item) =>
         item.id === id ? { ...item, quantity: Math.max(1, quantity) } : item

@@ -11,7 +11,7 @@ import ProductModal from './ProductModal';
 import Image from 'next/image';
 
 export default function CartDrawer({ isOpen, onClose, products }: { isOpen: boolean; onClose: () => void; products: Product[] }) {
-  const { items, removeItem, clearCart, updateQuantity } = useCartStore();
+  const { items, removeItem, clearCart, updateQuantity, correlationId } = useCartStore();
   const [pricing, setPricing] = useState<{ subtotalCents: number; discountCents: number; taxCents: number; serviceFeeCents: number; totalCents: number; couponApplied?: boolean; couponCode?: string } | null>(null);
   const [isCalculating, setIsCalculating] = useState(false);
   const [isCheckingOut, setIsCheckingOut] = useState(false);
@@ -42,7 +42,7 @@ export default function CartDrawer({ isOpen, onClose, products }: { isOpen: bool
       const res = await fetch('/api/cart/price', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ items, couponCode: appliedCoupon }),
+        body: JSON.stringify({ items, couponCode: appliedCoupon, correlationId }),
       });
       if (res.ok) {
         const data = await res.json();
@@ -53,7 +53,7 @@ export default function CartDrawer({ isOpen, onClose, products }: { isOpen: bool
     } finally {
       setIsCalculating(false);
     }
-  }, [items, appliedCoupon]);
+  }, [items, appliedCoupon, correlationId]);
 
   useEffect(() => {
     const debounce = setTimeout(fetchPricing, 300);
@@ -74,7 +74,7 @@ export default function CartDrawer({ isOpen, onClose, products }: { isOpen: bool
           'Content-Type': 'application/json',
           'Idempotency-Key': idempotencyKey,
         },
-        body: JSON.stringify({ items, couponCode: appliedCoupon, userId: 'user-123' }),
+        body: JSON.stringify({ items, couponCode: appliedCoupon, userId: 'user-123', correlationId }),
       });
 
       if (res.ok) {

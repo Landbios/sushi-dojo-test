@@ -1,25 +1,23 @@
-service: sushi-dojo-backend
+service: sushi-dojo
 
 provider:
   name: aws
-  runtime: nodejs18.x
+  runtime: nodejs20.x
   region: us-east-1
+  stage: dev
 
 plugins:
   - serverless-offline
 
 functions:
   api:
-    handler: src/app/api/handler.handler
+    handler: .next/server/pages/api/[...args].handler # This is a placeholder, Next.js typically needs a specific adapter for AWS Lambda
     events:
       - http:
-          path: /
-          method: ANY
-      - http:
-          path: '{proxy+}'
-          method: ANY
+          path: /api/{proxy+}
+          method: any
 
 custom:
   serverless-offline:
-    httpPort: 3001
+    httpPort: 4000
     noPrependStageInUrl: true

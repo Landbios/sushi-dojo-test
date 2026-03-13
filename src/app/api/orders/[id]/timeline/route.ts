@@ -11,7 +11,7 @@ export async function GET(
     const page = parseInt(url.searchParams.get('page') || '1');
     const pageSize = parseInt(url.searchParams.get('pageSize') || '50');
 
-    const timeline = db.getTimeline(id, page, pageSize);
+    const timeline = await db.getTimeline(id, page, pageSize);
 
     return NextResponse.json(timeline);
   } catch (error) {
