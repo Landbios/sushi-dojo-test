@@ -1,0 +1,25 @@
+service: sushi-dojo-backend
+
+provider:
+  name: aws
+  runtime: nodejs18.x
+  region: us-east-1
+
+plugins:
+  - serverless-offline
+
+functions:
+  api:
+    handler: src/app/api/handler.handler
+    events:
+      - http:
+          path: /
+          method: ANY
+      - http:
+          path: '{proxy+}'
+          method: ANY
+
+custom:
+  serverless-offline:
+    httpPort: 3001
+    noPrependStageInUrl: true

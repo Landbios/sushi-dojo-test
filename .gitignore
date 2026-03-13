@@ -5,6 +5,7 @@
 /.pnp
 .pnp.*
 .yarn/*
+
 !.yarn/patches
 !.yarn/plugins
 !.yarn/releases
@@ -32,6 +33,11 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+
+*.MD
+*.txt
+all_files.txt
+file_list.txt
 
 # vercel
 .vercel

@@ -1,36 +1,59 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Momo Sushia - Restaurant Ordering & Timeline System
 
-## Getting Started
+A modern restaurant ordering flow with a reliable Order Timeline audit trail.
 
-First, run the development server:
+## Key Features
+- **Menu System**: API-driven menu with complex customization.
+- **Cart Engine**: Server-side pricing validation and coupon support.
+- **Idempotency**: Secure checkout with `Idempotency-Key` validation.
+- **Audit Trail**: Immutable event-sourced timeline for every order.
+- **Security**: 16KB payload limits and automatic PII masking.
 
+## Prerequisites
+- **Node.js**: v18+
+- **Docker**: For MongoDB (Optional, falls back to in-memory)
+- **Package Manager**: npm
+
+## Quick Start (10 Minutes)
+
+### 1. Setup Environment
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### 2. Start Services
+To start the database (Optional):
+```bash
+docker-compose up -d
+```
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### 3. Run Application
+```bash
+# Start the Next.js development server
+npm run dev
+```
+The application will be available at `http://localhost:3000`.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### 4. Running Backend with Serverless (Optional)
+```bash
+# Using serverless-offline
+npx serverless offline
+```
 
-## Learn More
+## Testing & Seed Data
+- **Seed Data**: Products and coupons are automatically seeded in `src/lib/db.ts`.
+- **API Endpoints**:
+  - `GET /api/menu`: Retrieve menu products.
+  - `POST /api/cart/price`: Validate and calculate pricing (Server-side).
+  - `POST /api/orders`: Secure idempotent checkout.
+  - `GET /api/orders/[orderId]/timeline`: Fetch the audit trail.
 
-To learn more about Next.js, take a look at the following resources:
+## Development Details
+- **Tech Stack**: Next.js 15, Tailwind CSS, Zustand, MongoDB.
+- **Rules**:
+  - All currency represented as **integer cents**.
+  - Payload size strictly limited to **16KB**.
+  - **PII Masking** enabled for emails and phone numbers in logs.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+---
+Created for SunDevs Technical Test.

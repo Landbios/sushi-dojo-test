@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useCartStore } from '@/store/useCartStore';
 import { Product, CartItem } from '@/types';
 import { Loader2, X } from 'lucide-react';
@@ -10,10 +10,12 @@ import ProductModal from './ProductModal';
 
 export default function CartDrawer({ isOpen, onClose, products }: { isOpen: boolean; onClose: () => void; products: Product[] }) {
   const { items, removeItem, clearCart } = useCartStore();
-  const [pricing, setPricing] = useState<{ subtotalCents: number; taxCents: number; serviceFeeCents: number; totalCents: number } | null>(null);
+  const [pricing, setPricing] = useState<{ subtotalCents: number; discountCents: number; taxCents: number; serviceFeeCents: number; totalCents: number; couponApplied?: boolean; couponCode?: string } | null>(null);
   const [isCalculating, setIsCalculating] = useState(false);
   const [isCheckingOut, setIsCheckingOut] = useState(false);
   const [editingItem, setEditingItem] = useState<CartItem | null>(null);
+  const [couponInput, setCouponInput] = useState('');
+  const [appliedCoupon, setAppliedCoupon] = useState<string | undefined>(undefined);
   const router = useRouter();
 
   useEffect(() => {
@@ -27,34 +29,38 @@ export default function CartDrawer({ isOpen, onClose, products }: { isOpen: bool
     };
   }, [isOpen]);
 
-  useEffect(() => {
+  const fetchPricing = useCallback(async () => {
     if (items.length === 0) {
       setPricing(null);
       return;
     }
-
-    const fetchPricing = async () => {
-      setIsCalculating(true);
-      try {
-        const res = await fetch('/api/cart/price', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ items }),
-        });
-        if (res.ok) {
-          const data = await res.json();
-          setPricing(data);
-        }
-      } catch (error) {
-        console.error('Failed to calculate pricing', error);
-      } finally {
-        setIsCalculating(false);
+    
+    setIsCalculating(true);
+    try {
+      const res = await fetch('/api/cart/price', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ items, couponCode: appliedCoupon }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setPricing(data);
       }
-    };
+    } catch (error) {
+      console.error('Failed to calculate pricing', error);
+    } finally {
+      setIsCalculating(false);
+    }
+  }, [items, appliedCoupon]);
 
+  useEffect(() => {
     const debounce = setTimeout(fetchPricing, 300);
     return () => clearTimeout(debounce);
-  }, [items]);
+  }, [fetchPricing]);
+
+  const handleApplyCoupon = () => {
+    setAppliedCoupon(couponInput.toUpperCase());
+  };
 
   const handleCheckout = async () => {
     setIsCheckingOut(true);
@@ -66,7 +72,7 @@ export default function CartDrawer({ isOpen, onClose, products }: { isOpen: bool
           'Content-Type': 'application/json',
           'Idempotency-Key': idempotencyKey,
         },
-        body: JSON.stringify({ items, userId: 'user-123' }),
+        body: JSON.stringify({ items, couponCode: appliedCoupon, userId: 'user-123' }),
       });
 
       if (res.ok) {
@@ -74,8 +80,11 @@ export default function CartDrawer({ isOpen, onClose, products }: { isOpen: bool
         clearCart();
         onClose();
         router.push(`/orders/${data.orderId}`);
+      } else if (res.status === 409) {
+        alert('Duplicate checkout detected. Please check your orders.');
       } else {
-        alert('Checkout failed');
+        const error = await res.json();
+        alert(`Checkout failed: ${error.error || 'Unknown error'}`);
       }
     } catch (error) {
       console.error('Checkout error', error);
@@ -136,6 +145,30 @@ export default function CartDrawer({ isOpen, onClose, products }: { isOpen: bool
 
         {items.length > 0 && (
           <div className="p-5 border-t border-[#d4af37]/20 bg-[#141414]">
+            {/* Coupon Section */}
+            <div className="mb-6">
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  placeholder="Cupón (ej. OFF10)"
+                  value={couponInput}
+                  onChange={(e) => setCouponInput(e.target.value)}
+                  className="flex-1 bg-black/50 border border-gray-800 rounded px-3 py-2 text-sm text-white focus:border-[#d4af37] outline-none transition-colors uppercase"
+                />
+                <button
+                  onClick={handleApplyCoupon}
+                  className="bg-gray-800 hover:bg-gray-700 text-white px-4 py-2 rounded text-xs uppercase font-bold tracking-wider transition-colors"
+                >
+                  Aplicar
+                </button>
+              </div>
+              {pricing?.couponApplied && (
+                <div className="text-green-400 text-[10px] uppercase mt-1 tracking-widest font-bold">
+                  ✓ Cupón {pricing.couponCode} aplicado
+                </div>
+              )}
+            </div>
+
             {isCalculating || !pricing ? (
               <div className="flex justify-center py-4">
                 <Loader2 className="w-6 h-6 text-[#d4af37] animate-spin" />
@@ -146,6 +179,12 @@ export default function CartDrawer({ isOpen, onClose, products }: { isOpen: bool
                   <span className="uppercase text-xs">Subtotal</span>
                   <span className="text-white">€{(pricing.subtotalCents / 100).toFixed(2)}</span>
                 </div>
+                {pricing.discountCents > 0 && (
+                  <div className="flex justify-between text-green-400">
+                    <span className="uppercase text-xs">Descuento</span>
+                    <span>-€{(pricing.discountCents / 100).toFixed(2)}</span>
+                  </div>
+                )}
                 <div className="flex justify-between text-gray-400">
                   <span className="uppercase text-xs">Impuestos (8%)</span>
                   <span className="text-white">€{(pricing.taxCents / 100).toFixed(2)}</span>
