@@ -4,23 +4,25 @@ import { v4 as uuidv4 } from 'uuid';
 
 interface CartState {
   items: CartItem[];
-  addItem: (product: Product, selectedModifiers: Record<string, string[]>) => void;
+  addItem: (product: Product, selectedModifiers: Record<string, string[]>, comment?: string) => void;
   removeItem: (id: string) => void;
   updateQuantity: (id: string, quantity: number) => void;
   updateItemModifiers: (id: string, selectedModifiers: Record<string, string[]>) => void;
+  updateItemComment: (id: string, comment: string) => void;
   clearCart: () => void;
   getSubtotal: (products: Product[]) => number;
 }
 
 export const useCartStore = create<CartState>((set, get) => ({
   items: [],
-  addItem: (product, selectedModifiers) => {
+  addItem: (product, selectedModifiers, comment) => {
     set((state) => {
-      // Check if item with same product and modifiers exists
+      // Check if item with same product, modifiers AND comment exists
       const existingItemIndex = state.items.findIndex(
         (item) =>
           item.productId === product.id &&
-          JSON.stringify(item.selectedModifiers) === JSON.stringify(selectedModifiers)
+          JSON.stringify(item.selectedModifiers) === JSON.stringify(selectedModifiers) &&
+          item.comment === comment
       );
 
       if (existingItemIndex >= 0) {
@@ -37,6 +39,7 @@ export const useCartStore = create<CartState>((set, get) => ({
             productId: product.id,
             quantity: 1,
             selectedModifiers,
+            comment,
           },
         ],
       };
@@ -58,6 +61,13 @@ export const useCartStore = create<CartState>((set, get) => ({
     set((state) => ({
       items: state.items.map((item) =>
         item.id === id ? { ...item, selectedModifiers } : item
+      ),
+    }));
+  },
+  updateItemComment: (id, comment) => {
+    set((state) => ({
+      items: state.items.map((item) =>
+        item.id === id ? { ...item, comment } : item
       ),
     }));
   },

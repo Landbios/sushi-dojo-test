@@ -29,6 +29,7 @@ export interface CartItem {
   productId: string;
   quantity: number;
   selectedModifiers: Record<string, string[]>; // groupId -> optionId[]
+  comment?: string;
 }
 
 export type OrderStatus = 'PENDING' | 'ACCEPTED' | 'PREPARING' | 'READY' | 'COMPLETED' | 'CANCELLED';

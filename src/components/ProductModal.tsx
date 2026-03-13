@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Product, ModifierGroup } from '@/types';
+import { Product } from '@/types';
 import { useCartStore } from '@/store/useCartStore';
 import { X } from 'lucide-react';
 
@@ -15,7 +15,9 @@ interface ProductModalProps {
 export default function ProductModal({ product, onClose, initialModifiers, cartItemId }: ProductModalProps) {
   const addItem = useCartStore((state) => state.addItem);
   const updateItemModifiers = useCartStore((state) => state.updateItemModifiers);
+  const updateItemComment = useCartStore((state) => state.updateItemComment);
   const [selectedModifiers, setSelectedModifiers] = useState<Record<string, string[]>>(initialModifiers || {});
+  const [comment, setComment] = useState('');
 
   const handleToggleOption = (groupId: string, optionId: string, maxSelections?: number) => {
     setSelectedModifiers((prev) => {
@@ -56,12 +58,14 @@ export default function ProductModal({ product, onClose, initialModifiers, cartI
     });
   };
 
+
   const handleAddToCart = () => {
     if (!isValid()) return;
     if (cartItemId) {
       updateItemModifiers(cartItemId, selectedModifiers);
+      updateItemComment(cartItemId, comment);
     } else {
-      addItem(product, selectedModifiers);
+      addItem(product, selectedModifiers, comment);
     }
     onClose();
   };
@@ -137,6 +141,17 @@ export default function ProductModal({ product, onClose, initialModifiers, cartI
               </div>
             </div>
           ))}
+
+          {/* Comment Field */}
+          <div className="pt-2">
+            <h3 className="font-bold text-white uppercase tracking-wider text-sm mb-3">Comentarios especiales</h3>
+            <textarea
+              value={comment}
+              onChange={(e) => setComment(e.target.value)}
+              placeholder="Ej: Sin cebolla, extra picante..."
+              className="w-full bg-[#141414] border border-gray-800 rounded-lg p-3 text-sm text-gray-200 focus:border-[#d4af37]/50 focus:outline-none transition-colors min-h-[80px] resize-none"
+            />
+          </div>
         </div>
 
         <div className="p-5 border-t border-gray-800 bg-[#141414]">

@@ -1,10 +1,15 @@
 'use client';
 
 import { OrderEvent } from '@/types';
-import { CheckCircle, ShoppingCart, CreditCard, Loader2, Package, Truck, XCircle, ChevronDown, ChevronUp } from 'lucide-react';
+import { LucideIcon, CheckCircle, ShoppingCart, CreditCard, Loader2, Package, Truck, XCircle, ChevronDown, ChevronUp } from 'lucide-react';
 import { useState } from 'react';
 
-const EVENT_ICONS: Record<string, any> = {
+interface EventConfig {
+  icon: LucideIcon;
+  color: string;
+}
+
+const EVENT_ICONS: Record<string, EventConfig> = {
   CART_ITEM_ADDED: { icon: ShoppingCart, color: 'text-blue-400' },
   CART_ITEM_UPDATED: { icon: ShoppingCart, color: 'text-blue-400' },
   CART_ITEM_REMOVED: { icon: ShoppingCart, color: 'text-red-400' },
