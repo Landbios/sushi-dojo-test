@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useCartStore } from '@/store/useCartStore';
 import { Product, CartItem } from '@/types';
-import { Loader2, X, ShoppingBag } from 'lucide-react';
+import { Loader2, X, ShoppingBag, AlertCircle, RefreshCw } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { v4 as uuidv4 } from 'uuid';
 import ProductModal from './ProductModal';
@@ -14,6 +14,7 @@ export default function CartDrawer({ isOpen, onClose, products }: { isOpen: bool
   const { items, removeItem, clearCart, updateQuantity, correlationId } = useCartStore();
   const [pricing, setPricing] = useState<{ subtotalCents: number; discountCents: number; taxCents: number; serviceFeeCents: number; totalCents: number; couponApplied?: boolean; couponCode?: string } | null>(null);
   const [isCalculating, setIsCalculating] = useState(false);
+  const [pricingError, setPricingError] = useState<string | null>(null);
   const [isCheckingOut, setIsCheckingOut] = useState(false);
   const [editingItem, setEditingItem] = useState<CartItem | null>(null);
   const [couponInput, setCouponInput] = useState('');
@@ -34,10 +35,12 @@ export default function CartDrawer({ isOpen, onClose, products }: { isOpen: bool
   const fetchPricing = useCallback(async () => {
     if (items.length === 0) {
       setPricing(null);
+      setPricingError(null);
       return;
     }
     
     setIsCalculating(true);
+    setPricingError(null);
     try {
       const res = await fetch('/api/cart/price', {
         method: 'POST',
@@ -47,9 +50,12 @@ export default function CartDrawer({ isOpen, onClose, products }: { isOpen: bool
       if (res.ok) {
         const data = await res.json();
         setPricing(data);
+      } else {
+        throw new Error('Pricing service unavailable');
       }
     } catch (error) {
       console.error('Failed to calculate pricing', error);
+      setPricingError('Failed to sync pricing');
     } finally {
       setIsCalculating(false);
     }
@@ -210,7 +216,22 @@ export default function CartDrawer({ isOpen, onClose, products }: { isOpen: bool
               )}
             </div>
 
-            {isCalculating || !pricing ? (
+            {isCalculating ? (
+              <div className="flex justify-center py-10">
+                <div className="flex flex-col items-center gap-3">
+                  <div className="w-8 h-8 border-2 border-[#d4af37]/20 border-t-[#d4af37] rounded-full animate-spin" />
+                  <span className="text-[9px] uppercase tracking-widest text-[#d4af37]">Calculating...</span>
+                </div>
+              </div>
+            ) : pricingError ? (
+              <div className="bg-[#6b141a]/10 border border-[#6b141a]/30 p-4 rounded mb-8 text-center">
+                <AlertCircle className="w-6 h-6 text-[#6b141a] mx-auto mb-2" />
+                <div className="text-[#6b141a] text-[10px] font-black uppercase tracking-widest">{pricingError}</div>
+                <button onClick={fetchPricing} className="text-[#d4af37] text-[9px] uppercase font-black tracking-widest mt-2 hover:underline flex items-center justify-center gap-1.5 mx-auto">
+                  <RefreshCw className="w-3 h-3" /> Retry Sync
+                </button>
+              </div>
+            ) : !pricing ? (
               <div className="flex justify-center py-6">
                 <Loader2 className="w-6 h-6 text-[#6b141a] animate-spin" />
               </div>

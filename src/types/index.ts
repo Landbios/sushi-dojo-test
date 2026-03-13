@@ -32,7 +32,7 @@ export interface CartItem {
   comment?: string;
 }
 
-export type OrderStatus = 'PENDING' | 'ACCEPTED' | 'PREPARING' | 'READY' | 'COMPLETED' | 'CANCELLED';
+export type OrderStatus = 'PENDING' | 'ACCEPTED' | 'IN_PROGRESS' | 'BEING_DELIVERED' | 'COMPLETED' | 'CANCELLED';
 
 export interface Order {
   id: string;

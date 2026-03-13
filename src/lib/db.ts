@@ -1,4 +1,4 @@
-import { Product, Order, OrderEvent, Coupon } from '@/types';
+import { Product, Order, OrderEvent, Coupon, OrderStatus } from '@/types';
 import { connectToDatabase } from './mongodb';
 
 const products: Product[] = [
@@ -132,11 +132,44 @@ const coupons: Coupon[] = [
   { id: 'c-2', code: 'SUSHI5', discountType: 'FIXED', discountValue: 500, minSubtotalCents: 2000 }
 ];
 
+const seedData = async () => {
+  const { db: mongodb } = await connectToDatabase();
+  
+  const productCount = await mongodb.collection('products').countDocuments();
+  if (productCount === 0) {
+    await mongodb.collection('products').insertMany(products);
+  }
+
+  const couponCount = await mongodb.collection('coupons').countDocuments();
+  if (couponCount === 0) {
+    await mongodb.collection('coupons').insertMany(coupons);
+  }
+};
+
 export const db = {
-  getProducts: async () => products,
-  getProduct: async (id: string) => products.find(p => p.id === id),
-  getCoupons: async () => coupons,
-  getCoupon: async (code: string) => coupons.find(c => c.code === code.toUpperCase()),
+  getProducts: async () => {
+    await seedData();
+    const { db: mongodb } = await connectToDatabase();
+    return mongodb.collection('products').find({}).toArray() as unknown as Product[];
+  },
+  
+  getProduct: async (id: string) => {
+    await seedData();
+    const { db: mongodb } = await connectToDatabase();
+    return mongodb.collection('products').findOne({ id }) as unknown as Product;
+  },
+  
+  getCoupons: async () => {
+    await seedData();
+    const { db: mongodb } = await connectToDatabase();
+    return mongodb.collection('coupons').find({}).toArray() as unknown as Coupon[];
+  },
+  
+  getCoupon: async (code: string) => {
+    await seedData();
+    const { db: mongodb } = await connectToDatabase();
+    return mongodb.collection('coupons').findOne({ code: code.toUpperCase() }) as unknown as Coupon;
+  },
   
   saveOrder: async (order: Order) => {
     const { db: mongodb } = await connectToDatabase();
@@ -148,6 +181,14 @@ export const db = {
     const { db: mongodb } = await connectToDatabase();
     return mongodb.collection('orders')
       .find({ userId })
+      .sort({ createdAt: -1 })
+      .toArray();
+  },
+
+  getAllOrders: async () => {
+    const { db: mongodb } = await connectToDatabase();
+    return mongodb.collection('orders')
+      .find({})
       .sort({ createdAt: -1 })
       .toArray();
   },
@@ -187,5 +228,14 @@ export const db = {
     
     await mongodb.collection('idempotency_keys').insertOne({ key, createdAt: new Date() });
     return false;
+  },
+
+  updateOrderStatus: async (orderId: string, status: OrderStatus) => {
+    const { db: mongodb } = await connectToDatabase();
+    await mongodb.collection('orders').updateOne(
+      { id: orderId },
+      { $set: { status } }
+    );
+    return true;
   }
 };
